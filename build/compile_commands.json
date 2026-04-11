@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/build",
+  "command": "/usr/bin/g++ -I/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/include -g -std=gnu++17 -o CMakeFiles/tensor_run.dir/src/main.cpp.o -c /home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/src/main.cpp",
+  "file": "/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/src/main.cpp"
+},
+{
+  "directory": "/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/build",
+  "command": "/usr/bin/g++ -I/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/include -g -std=gnu++17 -o CMakeFiles/tensor_run.dir/src/tensor.cpp.o -c /home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/src/tensor.cpp",
+  "file": "/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/src/tensor.cpp"
+}
+]
