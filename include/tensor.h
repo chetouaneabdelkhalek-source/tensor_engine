@@ -14,6 +14,7 @@ public:
     float &operator()(std::vector<int> coords);
 
 private:
+    Tensor(std::vector<int> shape, std::vector<int> strideVector, float *data, int dim, int size ,int *alias_num);
     void cleanup();
     float *data;
     std::vector<int> strideVector;
