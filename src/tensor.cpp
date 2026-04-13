@@ -19,13 +19,14 @@ Tensor::Tensor(std::vector<int> shape) : shape(shape),
     {
         strideVector[i] = strideVector[i + 1] * shape[i + 1];
     }
+    this->alias_num = new int(1);
     this->size = size;
     this->strideVector = strideVector;
 }
 
 Tensor::~Tensor()
 {
-    delete[] data;
+    this->cleanup();
 }
 
 Tensor::Tensor(Tensor &other) : shape(other.shape),
@@ -34,6 +35,7 @@ Tensor::Tensor(Tensor &other) : shape(other.shape),
                                 strideVector(other.strideVector)
 {
     data = new float[size]();
+    this->alias_num = new int(1);
     for (int i = 0; i < size; i++)
     {
         data[i] = other.data[i];
@@ -45,13 +47,16 @@ Tensor &Tensor::operator=(Tensor &other)
         return *this;
     else
     {
+        cleanup();
+
         this->strideVector = other.strideVector;
         this->dim = other.dim;
         this->size = other.size;
         this->shape = other.shape;
-        delete[] data;
+
+        this->alias_num = new int(1);
         data = new float[size]();
-        for (int i = 0; i > size; i++)
+        for (int i = 0; i < size; i++)
         {
             data[i] = other.data[i];
         }
@@ -62,9 +67,11 @@ Tensor::Tensor(Tensor &&other) noexcept : shape(std::move(other.shape)),
                                           dim(other.dim),
                                           size(other.size),
                                           strideVector(std::move(other.strideVector)),
-                                          data(other.data)
+                                          data(other.data),
+                                          alias_num(other.alias_num)
 {
     other.data = nullptr;
+    other.alias_num = nullptr; 
     other.dim = 0;
     other.size = 0;
 }
@@ -75,21 +82,49 @@ Tensor &Tensor::operator=(Tensor &&other) noexcept
         return *this;
     else
     {
+        this->cleanup();
+
         this->strideVector = std::move(other.strideVector);
         this->dim = other.dim;
         this->size = other.size;
         this->shape = std::move(other.shape);
-
-        delete[] data;
+        this->alias_num = other.alias_num;
         this->data = other.data;
 
         other.data = nullptr;
+        other.alias_num = nullptr;
         other.dim = 0;
         other.size = 0;
 
         return *this;
     }
 }
+
+Tensor Tensor::transpose()
+{
+    std::vector<int> shape = this->shape;
+    std::vector<int> strideVector = this->strideVector;
+    int dim = this->dim;
+    for (int i = 0; i < dim / 2; i++)
+    {
+
+        std::swap(shape[dim - i - 1], shape[i]);
+        std::swap(strideVector[dim - i - 1], strideVector[i]);
+    }
+    Tensor alias(shape);
+    delete alias.alias_num;
+    delete[] alias.data;
+
+  
+    alias.data = this->data;
+    alias.alias_num = this->alias_num;
+    alias.strideVector = strideVector;
+    
+    if (alias.alias_num) {
+        (*alias.alias_num)++; 
+    }
+    return alias;
+};
 
 float &Tensor::operator()(std::vector<int> coords)
 {
@@ -109,4 +144,19 @@ float &Tensor::operator()(std::vector<int> coords)
         index += coords[i] * strideVector[i];
     }
     return data[index];
+}
+void Tensor::cleanup()
+{
+    if (alias_num != nullptr)
+    {
+        (*alias_num)--; 
+        if (*alias_num ==0)
+        
+        {
+            delete[] data;
+            delete alias_num;
+        }
+        alias_num = nullptr;
+        data = nullptr;
+    }
 }

@@ -63,7 +63,7 @@ To ensure system stability and high-performance data movement, I implemented the
 
 ## 🗺️ Roadmap
 - [x] **Block 1:** N-Dimensional Stride Math & Rule of Five.
-- [ ] **Block 2:** $O(1)$ Zero-Copy Transpose & Iterative Tree Traversals.
+- [x] **Block 2:** 'O(1)' Zero-Copy Transpose.
 - [ ] **Block 3:** Circular Buffers & Numerically Stable Softmax.
 - [ ] **Block 4:** Cache-friendly GEMM (General Matrix Multiply).
 
