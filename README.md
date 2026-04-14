@@ -1,7 +1,7 @@
 # 🏛️ TensorCore: High-Performance N-Dimensional Infrastructure
 
 **Candidate:** Systems Architect (AI Infrastructure / DL Systems)  
-**Status:** Phase 1 Bedrock Complete  
+**Status:** Block 2 Active (Zero-Copy Mechanics Validated)  
 **Engine:** C++17  
 
 ## 🎯 Overview
@@ -18,53 +18,43 @@ The engine supports arbitrary dimensions (Rank-N). Mapping multi-dimensional coo
 $$Index = \sum_{i=0}^{n-1} (coords_i \times stride_i)$$
 Where strides are pre-calculated during construction to minimize runtime overhead.
 
-### 3. Rule of Five (Memory Safety)
-To ensure system stability and high-performance data movement, I implemented the full **C++ Rule of Five**:
-*   **Deep Copy:** Copy Constructor & Assignment prevent double-free errors.
-*   **Move Semantics:** Move Constructor & Assignment utilize pointer stealing (`noexcept`) to transfer ownership of massive data blocks with zero-copy overhead.
+### 3. Memory Safety & Reference Counting
+To ensure system stability under heavy algorithmic loads, memory ownership is strictly managed:
+*   **Rule of Five:** Deep copies are explicitly handled, and move semantics utilize pointer-stealing (`noexcept`) for maximum efficiency.
+*   **Manual Reference Counting:** The engine utilizes a custom `alias_num` tracker. This allows multiple Tensor objects to safely alias the same underlying `float* data` array without triggering double-free crashes during destruction.
+
+### 4. Zero-Copy Operations
+*   **$O(1)$ Transpose:** Transposition is achieved via metadata manipulation (swapping shape and stride vectors) rather than migrating physical floats in RAM. A private constructor bypasses `new` allocations, preventing OS-level heap fragmentation.
 
 ## 🚀 Performance & Stability
-*   **Memory Safety:** Validated via **Valgrind**. All heap blocks are freed, and 0 memory leaks are possible.
+*   **Memory Integrity:** Validated via **Valgrind**. All tests confirm 0 memory leaks and complete mitigation of uninitialized values.
 *   **Bounds Checking:** Strict `std::out_of_range` validation for coordinate dimensions and tensor rank.
-*   **Zero-Fill Initialization:** All tensors are value-initialized to zero to prevent garbage-value computation.
 
 ## 📂 Project Structure
 ```text
 .
 ├── include/
-│   └── tensor.h      # Class blueprint & API
+│   └── tensor.h      # Class blueprint, Private Constructors & API
 ├── src/
-│   ├── tensor.cpp    # Implementation & Stride Logic
+│   ├── tensor.cpp    # Implementation, Stride Logic, Ref Counting
 │   └── main.cpp      # Stress tests & Benchmarks
 ├── build/            # CMake artifacts
 └── CMakeLists.txt    # Build system
 ```
 
 ## ⚙️ Building and Testing
-
 **Requirements:** `cmake`, `g++`, `valgrind`
 
-1. **Configure and Build:**
-   ```bash
-   mkdir build && cd build
-   cmake ..
-   make
-   ```
-
-2. **Run Stress Test:**
-   ```bash
-   ./tensor_run
-   ```
-
-3. **Verify Memory Integrity:**
-   ```bash
-   valgrind --leak-check=full --track-origins=yes ./tensor_run
-   ```
+```bash
+mkdir build && cd build
+cmake ..
+make
+valgrind --leak-check=full --track-origins=yes ./tensor_run
+```
 
 ## 🗺️ Roadmap
 - [x] **Block 1:** N-Dimensional Stride Math & Rule of Five.
-- [x] **Block 2:** 'O(1)' Zero-Copy Transpose.
+- [x] **Block 2:** $O(1)$ Zero-Copy Transpose & Reference Counting.
 - [ ] **Block 3:** Circular Buffers & Numerically Stable Softmax.
 - [ ] **Block 4:** Cache-friendly GEMM (General Matrix Multiply).
-
-***
+```
