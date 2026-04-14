@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/tensor_run.dir/src/main.cpp.o CMakeFiles/tensor_run.dir/src/tensor.cpp.o -o tensor_run 
