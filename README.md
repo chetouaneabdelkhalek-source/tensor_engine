@@ -35,6 +35,7 @@ This project requires a standard C++11 (or higher) compiler.
 ```bash
 makdir build
 cd build 
+cmake
 make
 ```
 
