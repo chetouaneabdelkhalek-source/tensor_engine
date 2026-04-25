@@ -6,14 +6,14 @@ class Tensor
 public:
     Tensor(std::vector<int> shape);
     ~Tensor();
-    Tensor(const Tensor &);                  // copy constructor
-    Tensor &operator=(const Tensor &);       // copy assignment
-    Tensor(Tensor &&other) noexcept;         // move constructor
+    Tensor(const Tensor &);                     // copy constructor
+    Tensor &operator=(const Tensor &);          // copy assignment
+    Tensor(Tensor &&other) noexcept;            // move constructor
     Tensor &operator=(Tensor &&other) noexcept; // move assignment
 
     Tensor transpose() const;
-    float &operator()(std::vector<int> coords);
-    const float &operator()(std::vector<int> coords) const;
+    float &operator()(const std::vector<int> &coords);
+    const float &operator()(const std::vector<int> &coords) const;
     Tensor softmax() const;
 
     friend Tensor matmul(const Tensor &A, const Tensor &B);
