@@ -1,60 +1,87 @@
-# 🏛️ TensorCore: High-Performance N-Dimensional Infrastructure
+# C++ Tensor Engine
 
-**Candidate:** Systems Architect (AI Infrastructure / DL Systems)  
-**Status:** Block 2 Active (Zero-Copy Mechanics Validated)  
-**Engine:** C++17  
+A lightweight, zero-dependency C++ Tensor engine built entirely from scratch. This project is an exercise in low-level systems engineering, focusing on contiguous memory management, stride manipulation, hardware-aware computation, and numerical stability.
 
-## 🎯 Overview
-TensorCore is a custom N-Dimensional tensor engine built from the ground up in C++. Unlike standard high-level libraries, TensorCore focuses on the **Silicon-Software interface**, utilizing contiguous memory layouts and manual pointer management to mimic the internals of production-grade frameworks like PyTorch (ATen) and GGML.
+## 🚀 Engineering Features
 
-## 🛠️ Architectural Decisions
+### 1. O(1) Zero-Copy Transpose
+Matrix transpositions do not copy any underlying data. 
+* **Implementation:** The `transpose()` method simply reverses the `shape` and `strideVector` arrays. 
+* **Memory Aliasing:** A custom non-atomic reference counter (`alias_num`) ensures the new transposed `Tensor` safely shares the exact same `float* data` buffer as the original, preventing deep copies and saving memory bandwidth.
 
-### 1. Contiguous Memory Layout (Cache Locality)
-Instead of using nested vectors (e.g., `vector<vector<float>>`), which causes "pointer chasing" and cache misses, TensorCore utilizes a **flat 1D array on the heap**. 
-*   **Impact:** This ensures that data is stored in contiguous memory blocks, respecting CPU cache lines and enabling future SIMD (Single Instruction, Multiple Data) vectorization.
+### 2. Hardware-Aware Matmul (GEMM)
+The `matmul` friend function includes a dynamic branching optimization to maximize CPU cache locality and compiler auto-vectorization.
+* **SIMD Fast Lane:** It checks if the inner dimensions are contiguous in memory (`Bstride1 == 1 && Cstride1 == 1`). If so, it executes a contiguous loop that the compiler can easily auto-vectorize (e.g., using AVX instructions).
+* **Safe Fallback:** If the tensors are strided or transposed views, it falls back to a stride-aware access pattern.
 
-### 2. N-Dimensional Stride Math
-The engine supports arbitrary dimensions (Rank-N). Mapping multi-dimensional coordinates to the underlying 1D memory is handled via **Stride Logic**:
-$$Index = \sum_{i=0}^{n-1} (coords_i \times stride_i)$$
-Where strides are pre-calculated during construction to minimize runtime overhead.
+### 3. Numerically Stable Softmax
+A naive $e^x$ implementation fails with `NaN` on large inputs due to floating-point overflow. 
+* **Max-Subtraction Trick:** The `softmax()` method computes the maximum value in the tensor first, then computes $e^{x_i - max}$. This keeps the maximum exponent at $e^0 = 1$, guaranteeing absolute numerical stability even with extreme logits (e.g., `1000.0` or `-1000.0`).
 
-### 3. Memory Safety & Reference Counting
-To ensure system stability under heavy algorithmic loads, memory ownership is strictly managed:
-*   **Rule of Five:** Deep copies are explicitly handled, and move semantics utilize pointer-stealing (`noexcept`) for maximum efficiency.
-*   **Manual Reference Counting:** The engine utilizes a custom `alias_num` tracker. This allows multiple Tensor objects to safely alias the same underlying `float* data` array without triggering double-free crashes during destruction.
+### 4. Memory Ownership & The Rule of Five
+The engine eschews `std::vector` for its data buffers, opting for raw `float*` pointers to maintain absolute control over heap allocations.
+* **Leak-Free:** Fully implements the **Rule of Five** (Destructor, Copy Constructor, Copy Assignment, Move Constructor, Move Assignment). 
+* **Move Semantics:** Utilizes `noexcept` move constructors to efficiently steal pointers from temporary r-values, avoiding expensive reallocations.
 
-### 4. Zero-Copy Operations
-*   **$O(1)$ Transpose:** Transposition is achieved via metadata manipulation (swapping shape and stride vectors) rather than migrating physical floats in RAM. A private constructor bypasses `new` allocations, preventing OS-level heap fragmentation.
+---
 
-## 🚀 Performance & Stability
-*   **Memory Integrity:** Validated via **Valgrind**. All tests confirm 0 memory leaks and complete mitigation of uninitialized values.
-*   **Bounds Checking:** Strict `std::out_of_range` validation for coordinate dimensions and tensor rank.
+## 🛠️ Build and Execution
 
-## 📂 Project Structure
-```text
-.
-├── include/
-│   └── tensor.h      # Class blueprint, Private Constructors & API
-├── src/
-│   ├── tensor.cpp    # Implementation, Stride Logic, Ref Counting
-│   └── main.cpp      # Stress tests & Benchmarks
-├── build/            # CMake artifacts
-└── CMakeLists.txt    # Build system
-```
+This project requires a standard C++11 (or higher) compiler. 
 
-## ⚙️ Building and Testing
-**Requirements:** `cmake`, `g++`, `valgrind`
+**Optimization Flag:** It is highly recommended to compile with `-O2` or `-O3`. This allows the compiler to unroll loops and apply vectorization to the `matmul` fast-lane.
 
+### Compile
 ```bash
-mkdir build && cd build
-cmake ..
-make
-valgrind --leak-check=full --track-origins=yes ./tensor_run
+g++ -O3 main.cpp tensor.cpp -o tensor_engine
 ```
 
-## 🗺️ Roadmap
-- [x] **Block 1:** N-Dimensional Stride Math & Rule of Five.
-- [x] **Block 2:** $O(1)$ Zero-Copy Transpose & Reference Counting.
-- [ ] **Block 3:** Circular Buffers & Numerically Stable Softmax.
-- [ ] **Block 4:** Cache-friendly GEMM (General Matrix Multiply).
+### Run
+```bash
+./tensor_engine
 ```
+
+### Validate Memory Safety
+The custom reference counting engine is designed to be strictly leak-free. You can verify this using Valgrind:
+```bash
+valgrind --leak-check=full ./tensor_engine
+```
+*(Expected output: `0 bytes in 0 blocks` lost)*
+
+---
+
+## 💻 Usage Examples
+
+### 1. Initialization and Flat Indexing
+Tensors support N-dimensional shapes. Coordinates are translated to 1D flat memory via pre-computed stride vectors.
+```cpp
+Tensor A({2, 3}); // Creates a 2x3 matrix
+A({0, 0}) = 1.0f; // Multi-dimensional indexing with bounds checking
+A({1, 2}) = 6.0f;
+```
+
+### 2. Zero-Copy Operations
+Because `transpose()` shares memory, modifying the original tensor modifies the transposed view.
+```cpp
+Tensor A({1024, 1024});
+Tensor A_T = A.transpose(); // O(1) time complexity, 0 bytes copied
+
+A({5, 5}) = 42.0f;
+// A_T({5, 5}) is now also 42.0f
+```
+
+### 3. Stable Softmax on Extreme Values
+```cpp
+Tensor logits({3});
+logits({0}) = 1000.0f;
+logits({1}) = 1001.0f;
+logits({2}) = 999.0f;
+
+// Will correctly output valid probabilities without NaN overflow
+Tensor probs = logits.softmax(); 
+```
+
+## 🏗️ Internal Architecture Notes
+
+* **Flat Data Layout:** Memory is allocated as a single 1D `float*` array. Size is calculated dynamically based on the product of the shape dimensions.
+* **Single-Threaded Context:** As noted in `tensor.h`, the current `alias_num` is a standard `int*`. It is optimized for single-threaded execution. For a multi-threaded context, this would easily be swapped to `std::atomic<int>`.
