@@ -33,7 +33,9 @@ This project requires a standard C++11 (or higher) compiler.
 
 ### Compile
 ```bash
-g++ -O3 main.cpp tensor.cpp -o tensor_engine
+makdir build
+cd build 
+make
 ```
 
 ### Run
