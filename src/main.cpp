@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <chrono>
 
 // Utility function to print a 2D tensor
 void print_matrix(const std::string& name, const Tensor& t, int rows, int cols) {
@@ -109,6 +110,37 @@ int main() {
     
     std::cout << "========================================\n";
     std::cout << "Engine execution completed successfully.\n";
+    // ---------------------------------------------------------
+    // 5. TASK 4: THE BENCHMARK (THE METRIC LAW)
+    // ---------------------------------------------------------
+    std::cout << "[5] TASK 4: THE BENCHMARK (THE METRIC LAW)\n";
+    
+    Tensor t1({500, 500});
+    Tensor t2({500, 500});
+
+    // Fill the tensors with 1.0f
+    for (int i = 0; i < 500; ++i) {
+        for (int j = 0; j < 500; ++j) {
+            t1({i, j}) = 1.0f;
+            t2({i, j}) = 1.0f;
+        }
+    }
+
+    // Start the chrono timer
+    auto start = std::chrono::high_resolution_clock::now();
+    
+    // Execute matrix multiplication
+    Tensor result_bench = matmul(t1, t2); 
+    
+    // Stop the chrono timer
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    std::cout << "[BASELINE] Naive MatMul 500x500: " << duration.count() << " milliseconds.\n\n";
+
+    std::cout << "========================================\n";
+    std::cout << "Engine execution completed successfully.\n";
+
 
     return 0;
 }

@@ -83,7 +83,31 @@ logits({2}) = 999.0f;
 // Will correctly output valid probabilities without NaN overflow
 Tensor probs = logits.softmax(); 
 ```
+### 4. TASK 4: THE BENCHMARK (THE METRIC LAW)
+To measure the performance of the hardware-aware matrix multiplication, we benchmark a 500x500 GEMM operation using the standard `<chrono>` library.
 
+```cpp
+#include <chrono>
+
+// Create two 500x500 Tensors
+Tensor t1({500, 500});
+Tensor t2({500, 500});
+
+// (Fill t1 and t2 with 1.0f or random numbers here)
+
+// Start the chrono timer
+auto start = std::chrono::high_resolution_clock::now();
+
+// Execute MatMul
+Tensor result = matmul(t1, t2);
+
+// Stop the chrono timer
+auto end = std::chrono::high_resolution_clock::now();
+auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+// Output the metric
+std::cout << "[BASELINE] Naive MatMul 500x500: " << duration.count() << " milliseconds.\n";
+```
 ## 🏗️ Internal Architecture Notes
 
 * **Flat Data Layout:** Memory is allocated as a single 1D `float*` array. Size is calculated dynamically based on the product of the shape dimensions.
