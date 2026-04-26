@@ -45,7 +45,7 @@ cmake --build build
 ### Validate Memory Safety
 The custom reference counting engine is designed to be strictly leak-free. You can verify this using Valgrind:
 ```bash
-valgrind --leak-check=full ./tensor_engine
+valgrind --leak-check=full ./tensor_run
 ```
 *(Expected output: `0 bytes in 0 blocks` lost)*
 
