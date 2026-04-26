@@ -33,15 +33,13 @@ This project requires a standard C++11 (or higher) compiler.
 
 ### Compile
 ```bash
-makdir build
-cd build 
-cmake
-make
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
 ### Run
 ```bash
-./tensor_engine
+./build/tensor_run
 ```
 
 ### Validate Memory Safety
