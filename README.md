@@ -33,21 +33,19 @@ This project requires a standard C++11 (or higher) compiler.
 
 ### Compile
 ```bash
-makdir build
-cd build 
-cmake
-make
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ```
 
 ### Run
 ```bash
-./tensor_engine
+./build/tensor_run
 ```
 
 ### Validate Memory Safety
 The custom reference counting engine is designed to be strictly leak-free. You can verify this using Valgrind:
 ```bash
-valgrind --leak-check=full ./tensor_engine
+valgrind --leak-check=full ./tensor_run
 ```
 *(Expected output: `0 bytes in 0 blocks` lost)*
 
