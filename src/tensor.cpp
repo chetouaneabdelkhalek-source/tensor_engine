@@ -119,7 +119,7 @@ Tensor Tensor::transpose() const
     return Tensor(shape, strideVector, this->data, this->dim, this->size, this->alias_num);
 };
 
-float &Tensor::operator()(std::vector<int> coords)
+float &Tensor::operator()(const std::vector<int> &coords)
 {
 
     if (coords.size() != dim)
@@ -138,7 +138,7 @@ float &Tensor::operator()(std::vector<int> coords)
     }
     return data[index];
 }
-const float &Tensor::operator()(std::vector<int> coords) const
+const float &Tensor::operator()(const std::vector<int> &coords) const
 {
     if (coords.size() != dim)
         throw std::out_of_range("Coordinate dimensions do not match tensor rank");
