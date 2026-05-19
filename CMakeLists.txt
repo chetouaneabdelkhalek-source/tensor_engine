@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(TensorEngine)
 
 # Use modern C++
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # 1. THE STANDARD WAY: Default to "Release" mode if not specified.
 # Release mode automatically adds -O3 (or /O2 on Windows) and removes debug overhead.
@@ -21,7 +21,7 @@ add_executable(tensor_run src/main.cpp src/tensor.cpp)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(tensor_run PRIVATE 
         -O2             # Maximize speed
-        -march=native   # Tell the compiler to use instructions specific to YOUR exact CPU (e.g., AVX2/AVX-512)
+        #-march=native   # Tell the compiler to use instructions specific to YOUR exact CPU (e.g., AVX2/AVX-512)
         -ffast-math     # Allow aggressive floating-point math optimizations (great for ML)
     )
 endif()

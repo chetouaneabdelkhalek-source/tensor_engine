@@ -1,6 +1,7 @@
 #include "tensor.h"
 #include <iostream>
 #include <cmath>
+#include <memory>
 
 Tensor::Tensor(std::vector<int> shape) : shape(shape),
                                          dim(shape.size())
@@ -11,7 +12,7 @@ Tensor::Tensor(std::vector<int> shape) : shape(shape),
     {
         size *= shape[i];
     }
-    this->data = new float[size]();
+    this->data = std::make_shared<float[]>(size);
 
     // creating the stride vector
     std::vector<int> strideVector(dim);
@@ -23,14 +24,13 @@ Tensor::Tensor(std::vector<int> shape) : shape(shape),
             strideVector[i] = strideVector[i + 1] * shape[i + 1];
         }
     }
-    this->alias_num = new int(1);
     this->size = size;
     this->strideVector = strideVector;
 }
 
 Tensor::~Tensor()
 {
-    this->cleanup();
+    // shared_ptr clean automaticly
 }
 
 Tensor::Tensor(const Tensor &other) : shape(other.shape),
@@ -38,8 +38,8 @@ Tensor::Tensor(const Tensor &other) : shape(other.shape),
                                       size(other.size),
                                       strideVector(other.strideVector)
 {
-    data = new float[size]();
-    this->alias_num = new int(1);
+    data = std::make_shared<float[]>(size);
+
     for (int i = 0; i < size; i++)
     {
         data[i] = other.data[i];
@@ -51,15 +51,13 @@ Tensor &Tensor::operator=(const Tensor &other)
         return *this;
     else
     {
-        cleanup();
 
         this->strideVector = other.strideVector;
         this->dim = other.dim;
         this->size = other.size;
         this->shape = other.shape;
 
-        this->alias_num = new int(1);
-        data = new float[size]();
+        data = std::make_shared<float[]>(size);
         for (int i = 0; i < size; i++)
         {
             data[i] = other.data[i];
@@ -71,11 +69,10 @@ Tensor::Tensor(Tensor &&other) noexcept : shape(std::move(other.shape)),
                                           dim(other.dim),
                                           size(other.size),
                                           strideVector(std::move(other.strideVector)),
-                                          data(other.data),
-                                          alias_num(other.alias_num)
+                                          data(std::move(other.data))
+
 {
-    other.data = nullptr;
-    other.alias_num = nullptr;
+
     other.dim = 0;
     other.size = 0;
 }
@@ -86,17 +83,13 @@ Tensor &Tensor::operator=(Tensor &&other) noexcept
         return *this;
     else
     {
-        this->cleanup();
 
         this->strideVector = std::move(other.strideVector);
         this->dim = other.dim;
         this->size = other.size;
         this->shape = std::move(other.shape);
-        this->alias_num = other.alias_num;
-        this->data = other.data;
+        this->data = std::move(other.data);
 
-        other.data = nullptr;
-        other.alias_num = nullptr;
         other.dim = 0;
         other.size = 0;
 
@@ -116,7 +109,7 @@ Tensor Tensor::transpose() const
         std::swap(strideVector[dim - i - 1], strideVector[i]);
     }
 
-    return Tensor(shape, strideVector, this->data, this->dim, this->size, this->alias_num);
+    return Tensor(shape, strideVector, this->data, this->dim, this->size);
 };
 
 float &Tensor::operator()(const std::vector<int> &coords)
@@ -228,27 +221,8 @@ Tensor matmul(const Tensor &A, const Tensor &B)
     }
     return C;
 }
-void Tensor::cleanup()
-{
-    if (alias_num != nullptr)
-    {
-        (*alias_num)--;
-        if (*alias_num == 0)
 
-        {
-            delete[] data;
-            delete alias_num;
-        }
-        alias_num = nullptr;
-        data = nullptr;
-    }
-}
-
-Tensor::Tensor(std::vector<int> shape, std::vector<int> strideVector, float *data, int dim, int size, int *alias_num) : shape(shape), strideVector(strideVector), data(data), alias_num(alias_num), dim(dim),
-                                                                                                                        size(size)
+Tensor::Tensor(std::vector<int> shape, std::vector<int> strideVector, std::shared_ptr<float[]> data, int dim, int size) : shape(shape), strideVector(strideVector), data(data), dim(dim),
+                                                                                                                          size(size)
 {
-    if (this->alias_num)
-    {
-        (*this->alias_num)++;
-    }
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-
+#include <memory>
 class Tensor
 {
 public:
@@ -20,15 +20,12 @@ public:
 
 private:
     Tensor(std::vector<int> shape, std::vector<int> strideVector,
-           float *data, int dim, int size, int *alias_num);
-    void cleanup();
+           std::shared_ptr<float[]> data, int dim, int size);
 
-    float *data;
+    std::shared_ptr<float[]> data;
     std::vector<int> strideVector;
     std::vector<int> shape;
-    // NOTE: alias_num is a non-atomic reference count.
-    // Single-threaded only. For multi-threaded use: std::atomic<int>.
-    int *alias_num;
+
     int dim;
     int size;
 };
