@@ -2,6 +2,8 @@
 #include <iostream>
 #include <cmath>
 #include <memory>
+#include <cstdlib>
+#include <cstring>
 
 Tensor::Tensor(std::vector<int> shape) : shape(shape),
                                          dim(shape.size())
@@ -12,7 +14,7 @@ Tensor::Tensor(std::vector<int> shape) : shape(shape),
     {
         size *= shape[i];
     }
-    this->data = std::make_shared<float[]>(size);
+    this->data = data_initialization(size);
 
     // creating the stride vector
     std::vector<int> strideVector(dim);
@@ -38,7 +40,7 @@ Tensor::Tensor(const Tensor &other) : shape(other.shape),
                                       size(other.size),
                                       strideVector(other.strideVector)
 {
-    data = std::make_shared<float[]>(size);
+    data = data_initialization(size);
 
     for (int i = 0; i < size; i++)
     {
@@ -57,7 +59,7 @@ Tensor &Tensor::operator=(const Tensor &other)
         this->size = other.size;
         this->shape = other.shape;
 
-        data = std::make_shared<float[]>(size);
+        data = data_initialization(size);
         for (int i = 0; i < size; i++)
         {
             data[i] = other.data[i];
@@ -225,4 +227,27 @@ Tensor matmul(const Tensor &A, const Tensor &B)
 Tensor::Tensor(std::vector<int> shape, std::vector<int> strideVector, std::shared_ptr<float[]> data, int dim, int size) : shape(shape), strideVector(strideVector), data(data), dim(dim),
                                                                                                                           size(size)
 {
+}
+std::shared_ptr<float[]>  Tensor::data_initialization(int size)
+{
+    if (size <= 0)
+        return nullptr;
+    size_t aligned_bytes = ((size * sizeof(float) + 31) / 32) * 32;
+    float *raw_ptr = nullptr;
+#ifdef _MSC_VER
+    // Windows (MSVC)
+    raw_ptr = static_cast<float *>(_aligned_malloc(aligned_bytes, 32));
+    if (!raw_ptr)
+        throw std::bad_alloc();
+    std::memset(raw_ptr, 0, aligned_bytes);
+    return std::shared_ptr<float[]>(raw_ptr, [](float *p)
+                                    { _aligned_free(p); });
+#else
+    // Linux / macOS (GCC / Clang)
+    raw_ptr = static_cast<float *>(std::aligned_alloc(32, aligned_bytes));
+    if (!raw_ptr)
+        throw std::bad_alloc();
+    std::memset(raw_ptr, 0, aligned_bytes);
+    return std::shared_ptr<float[]>(raw_ptr, std::free);
+#endif
 }

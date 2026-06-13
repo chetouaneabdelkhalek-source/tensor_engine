@@ -1,27 +1,37 @@
 cmake_minimum_required(VERSION 3.10)
 project(TensorEngine)
 
-# Use modern C++
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 1. THE STANDARD WAY: Default to "Release" mode if not specified.
-# Release mode automatically adds -O3 (or /O2 on Windows) and removes debug overhead.
-if(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Tell the compiler where your .h files are
-include_directories(include)
-
-# Tell the compiler to compile main.cpp and tensor.cpp into a program called tensor_run
 add_executable(tensor_run src/main.cpp src/tensor.cpp)
+target_include_directories(tensor_run PRIVATE include)
 
-# 2. THE TARGET-SPECIFIC WAY: Pushing the hardware to its absolute limit
-# If we are using GCC or Clang, force these aggressive performance flags.
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(tensor_run PRIVATE 
-        -O2             # Maximize speed
-        #-march=native   # Tell the compiler to use instructions specific to YOUR exact CPU (e.g., AVX2/AVX-512)
-        -ffast-math     # Allow aggressive floating-point math optimizations (great for ML)
+
+    # --- Release: full hardware optimization ---
+    target_compile_options(tensor_run PRIVATE
+        $<$<CONFIG:Release>:-march=native>   # NOTE: '#' is the CMake comment char, NOT '//'
+        $<$<CONFIG:Release>:-ffast-math>
+        $<$<CONFIG:Release>:-O3>
     )
+
+    # --- Valgrind/Debug: no arch-specific instructions so Valgrind can execute them ---
+    # Build with: cmake -DCMAKE_BUILD_TYPE=Debug ..
+    target_compile_options(tensor_run PRIVATE
+        $<$<CONFIG:Debug>:-O0>
+        $<$<CONFIG:Debug>:-g>
+    )
+
+    # --- AddressSanitizer profile (preferred over Valgrind on Linux) ---
+    # Build with: cmake -DCMAKE_BUILD_TYPE=Asan ..
+    if(CMAKE_BUILD_TYPE STREQUAL "Asan")
+        target_compile_options(tensor_run PRIVATE -O1 -g -fsanitize=address -fno-omit-frame-pointer)
+        target_link_options(tensor_run PRIVATE -fsanitize=address)
+    endif()
+
 endif()

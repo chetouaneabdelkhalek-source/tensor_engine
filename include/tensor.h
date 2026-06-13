@@ -21,7 +21,9 @@ public:
 private:
     Tensor(std::vector<int> shape, std::vector<int> strideVector,
            std::shared_ptr<float[]> data, int dim, int size);
-
+    
+    std::shared_ptr<float[]>data_initialization(int size);
+    
     std::shared_ptr<float[]> data;
     std::vector<int> strideVector;
     std::vector<int> shape;
