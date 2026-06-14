@@ -1,0 +1,3 @@
+/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/build_dbg/CMakeFiles/tensor_run.dir
+/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/build_dbg/CMakeFiles/edit_cache.dir
+/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/build_dbg/CMakeFiles/rebuild_cache.dir

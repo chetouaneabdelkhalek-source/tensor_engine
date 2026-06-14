@@ -1,0 +1,10 @@
+[ 33%] Building CXX object CMakeFiles/tensor_run.dir/src/main.cpp.o
+/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/src/main.cpp:308:1: error: two or more data types in declaration of ‘test_softmax_compare’
+  308 | void void test_softmax_compare()
+      | ^~~~
+/home/abdelkhalek/Documents/manjaro/ENSIA/roadmap/tensor_engine/src/main.cpp:337:1: error: expected unqualified-id before ‘{’ token
+  337 | {
+      | ^
+gmake[2]: *** [CMakeFiles/tensor_run.dir/build.make:76: CMakeFiles/tensor_run.dir/src/main.cpp.o] Error 1
+gmake[1]: *** [CMakeFiles/Makefile2:83: CMakeFiles/tensor_run.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2

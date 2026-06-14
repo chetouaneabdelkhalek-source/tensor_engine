@@ -4,6 +4,8 @@
 #include <memory>
 #include <cstdlib>
 #include <cstring>
+#include <stdexcept>
+#include <utility> 
 
 Tensor::Tensor(std::vector<int> shape) : shape(shape),
                                          dim(shape.size())
@@ -179,6 +181,15 @@ Tensor Tensor::softmax() const
     }
     return softmaxVec;
 }
+Tensor Tensor::softmax_naive() const {
+    Tensor out(this->shape);
+    float sum = 0;
+    for (int i = 0; i < size; i++) 
+        sum += std::exp(data[i * strideVector[0]]);
+    for (int i = 0; i < size; i++) 
+        out.data[i] = std::exp(data[i * strideVector[0]]) / sum;
+    return out;
+}
 Tensor matmul(const Tensor &A, const Tensor &B)
 {
 
@@ -194,30 +205,57 @@ Tensor matmul(const Tensor &A, const Tensor &B)
     int Astride0 = A.strideVector[0], Astride1 = A.strideVector[1];
     int Bstride0 = B.strideVector[0], Bstride1 = B.strideVector[1];
     int Cstride0 = C.strideVector[0], Cstride1 = C.strideVector[1];
-
-    for (int i = 0; i < M; i++)
+    if (Bstride1 == 1)
     {
-        for (int k = 0; k < K; k++)
+        for (int i = 0; i < M; i++)
         {
-            float a_val = A.data[i * Astride0 + k * Astride1];
-
-            float *B_row = &B.data[k * Bstride0];
-            float *C_row = &C.data[i * Cstride0];
-
-            // --- THE BRANCHING OPTIMIZATION ---
-            if (Bstride1 == 1 && Cstride1 == 1)
+            for (int k = 0; k < K; k++)
             {
-                for (int j = 0; j < N; j++)
+                float a_val = A.data[i * Astride0 + k * Astride1];
+
+                float *B_row = &B.data[k * Bstride0];
+                float *C_row = &C.data[i * Cstride0];
+
+              
                 {
-                    C_row[j] += a_val * B_row[j]; // SIMD Fast Lane
+                    for (int j = 0; j < N; j++)
+                    {
+                        C_row[j] += a_val * B_row[j]; // SIMD Fast Lane
+                    }
                 }
+               
             }
-            else
+        }
+    }
+    else
+    {
+
+        for (int i = 0; i < M; i++)
+        {
+            float* A_row = &A.data[i*Astride0 ];
+            for (int j = 0; j < N; j++)
             {
-                for (int j = 0; j < N; j++)
-                {
-                    C_row[j * Cstride1] += a_val * B_row[j * Bstride1]; // Safe Fallback
-                }
+                float sum =0.0f;
+               
+               for(int k = 0;k < K ;k++){
+               sum += A_row[k * Astride1] * B.data[k * Bstride0 + j * Bstride1];
+               }
+                C.data[i*Cstride0 +j*Cstride1]= sum;
+            }
+        }
+    }
+    return C;
+}
+
+Tensor matmul_naive(const Tensor &A, const Tensor &B) {
+    int M = A.shape[0], K = A.shape[1], N = B.shape[1];
+    Tensor C({M, N});
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int k = 0; k < K; k++) {
+                // Bypass the std::vector creation overhead
+                C.data[i * C.strideVector[0] + j * C.strideVector[1]] += 
+                    A.data[i * A.strideVector[0] + k * A.strideVector[1]] * B.data[k * B.strideVector[0] + j * B.strideVector[1]];
             }
         }
     }
@@ -228,7 +266,7 @@ Tensor::Tensor(std::vector<int> shape, std::vector<int> strideVector, std::share
                                                                                                                           size(size)
 {
 }
-std::shared_ptr<float[]>  Tensor::data_initialization(int size)
+std::shared_ptr<float[]> Tensor::data_initialization(int size)
 {
     if (size <= 0)
         return nullptr;

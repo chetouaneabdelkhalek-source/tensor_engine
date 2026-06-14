@@ -15,7 +15,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 
     # --- Release: full hardware optimization ---
     target_compile_options(tensor_run PRIVATE
-        $<$<CONFIG:Release>:-march=native>   # NOTE: '#' is the CMake comment char, NOT '//'
+        $<$<CONFIG:Release>:-march=native> 
         $<$<CONFIG:Release>:-ffast-math>
         $<$<CONFIG:Release>:-O3>
     )

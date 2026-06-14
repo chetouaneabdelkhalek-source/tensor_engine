@@ -15,9 +15,9 @@ public:
     float &operator()(const std::vector<int> &coords);
     const float &operator()(const std::vector<int> &coords) const;
     Tensor softmax() const;
-
+  Tensor softmax_naive() const;  
     friend Tensor matmul(const Tensor &A, const Tensor &B);
-
+    friend Tensor matmul_naive(const Tensor &A, const Tensor &B);
 private:
     Tensor(std::vector<int> shape, std::vector<int> strideVector,
            std::shared_ptr<float[]> data, int dim, int size);
