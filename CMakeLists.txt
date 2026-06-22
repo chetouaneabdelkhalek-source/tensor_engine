@@ -25,6 +25,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(tensor_run PRIVATE
         $<$<CONFIG:Debug>:-O0>
         $<$<CONFIG:Debug>:-g>
+    )  
+      # --- Benchmark: -O2 only, no arch-specific optimizations, realistic baseline ---
+    # Build with: cmake -DCMAKE_BUILD_TYPE=Benchmark ..
+    target_compile_options(tensor_run PRIVATE
+        $<$<CONFIG:Benchmark>:-O2>
+        $<$<CONFIG:Benchmark>:-g>
     )
 
     # --- AddressSanitizer profile (preferred over Valgrind on Linux) ---
