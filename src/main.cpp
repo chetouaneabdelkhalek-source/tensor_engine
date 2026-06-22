@@ -589,6 +589,104 @@ void test_softmax_compare()
     std::cout << "[STABLE] sum: " << stable({0}) + stable({1}) + stable({2}) << "\n";
 }
 // ─────────────────────────────────────────────
+// Test 9 — Tiled GEMM correctness
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Test 9 — Tiled GEMM correctness
+// ─────────────────────────────────────────────
+void test_tiled_matmul()
+{
+    section("9. Tiled GEMM Correctness");
+
+    // ── Case A: Square N=256, TILE=64 ────────────────────────────────
+    std::cout << "\n[Case A] Square 256x256, TILE=64\n";
+    {
+        const int N = 256;
+        Tensor A({N, N}), B({N, N});
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+            {
+                A({i, j}) = 1.0f;
+                B({i, j}) = 1.0f;
+            }
+
+        Tensor C_naive = matmul_naive(A, B);
+        Tensor C_tiled = matmul_tiled(A, B, 64);
+
+        bool match = true;
+        for (int i = 0; i < N && match; ++i)
+            for (int j = 0; j < N && match; ++j)
+                if (!nearly_equal(C_naive({i, j}), C_tiled({i, j}), 1e-4f))
+                {
+                    match = false;
+                    std::cout << "Mismatch at (" << i << "," << j << "): naive=" << C_naive({i, j}) << " tiled=" << C_tiled({i, j}) << "\n";
+                }
+
+        if (match)
+        {
+            float expected = static_cast<float>(N);
+            std::cout << "[PASS] Tiled matches naive. C[0,0] = " << C_tiled({0, 0}) << " (expected " << expected << ")\n";
+        }
+        else
+        {
+            std::cout << "[FAIL] Tiled output does not match naive.\n";
+        }
+    }
+
+    // ── Case B: Non-divisible N=100, TILE=32 ─────────────────────────
+    std::cout << "\n[Case B] Non-divisible 100x100, TILE=32\n";
+    {
+        const int N = 100;
+        Tensor A({N, N}), B({N, N});
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j)
+            {
+                A({i, j}) = static_cast<float>((i * N + j) % 7 + 1);
+                B({i, j}) = static_cast<float>((i * N + j) % 5 + 1);
+            }
+
+        Tensor C_naive = matmul_naive(A, B);
+        Tensor C_tiled = matmul_tiled(A, B, 32);
+
+        bool match = true;
+        for (int i = 0; i < N && match; ++i)
+            for (int j = 0; j < N && match; ++j)
+                if (!nearly_equal(C_naive({i, j}), C_tiled({i, j}), 1e-4f))
+                {
+                    match = false;
+                    std::cout << "Mismatch at (" << i << "," << j << "): naive=" << C_naive({i, j}) << " tiled=" << C_tiled({i, j}) << "\n";
+                }
+
+        std::cout << (match ? "[PASS]" : "[FAIL]") << " Tiled matches naive for non-divisible dimensions.\n";
+    }
+
+    // ── Case C: Small exact N=4, TILE=2 ──────────────────────────────
+    std::cout << "\n[Case C] Small exact 4x4, TILE=2\n";
+    {
+        Tensor A({4, 4}), B({4, 4});
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+            {
+                A({i, j}) = static_cast<float>(i * 4 + j + 1);
+                B({i, j}) = static_cast<float>(j * 4 + i + 1);
+            }
+
+        Tensor C_naive = matmul_naive(A, B);
+        Tensor C_tiled = matmul_tiled(A, B, 2);
+
+        bool match = true;
+        for (int i = 0; i < 4 && match; ++i)
+            for (int j = 0; j < 4 && match; ++j)
+                if (!nearly_equal(C_naive({i, j}), C_tiled({i, j}), 1e-4f))
+                {
+                    match = false;
+                    std::cout << "Mismatch at (" << i << "," << j << "): naive=" << C_naive({i, j}) << " tiled=" << C_tiled({i, j}) << "\n";
+                }
+
+        std::cout << (match ? "[PASS]" : "[FAIL]") << " Tiled matches naive for 4x4 TILE=2.\n";
+    }
+}
+// ─────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────
 int main()
@@ -602,8 +700,10 @@ int main()
     test_matmul();
     test_softmax();
     test_softmax_compare();
+    test_tiled_matmul();
     test_rule_of_five();
     test_bounds();
+    test_tiled_matmul(); 
     test_benchmark();
 
     std::cout << "\n========================================\n";

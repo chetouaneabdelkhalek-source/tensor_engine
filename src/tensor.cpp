@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
-#include <utility> 
+#include <utility>
 
 Tensor::Tensor(std::vector<int> shape) : shape(shape),
                                          dim(shape.size())
@@ -181,12 +181,13 @@ Tensor Tensor::softmax() const
     }
     return softmaxVec;
 }
-Tensor Tensor::softmax_naive() const {
+Tensor Tensor::softmax_naive() const
+{
     Tensor out(this->shape);
     float sum = 0;
-    for (int i = 0; i < size; i++) 
+    for (int i = 0; i < size; i++)
         sum += std::exp(data[i * strideVector[0]]);
-    for (int i = 0; i < size; i++) 
+    for (int i = 0; i < size; i++)
         out.data[i] = std::exp(data[i * strideVector[0]]) / sum;
     return out;
 }
@@ -198,7 +199,6 @@ Tensor matmul(const Tensor &A, const Tensor &B)
     if (A.shape[1] != B.shape[0])
         throw std::invalid_argument("Dimension mismatch.");
 
-    // THESE MUST REMAIN ACTIVE
     int M = A.shape[0], K = A.shape[1], N = B.shape[1];
     Tensor C({M, N});
 
@@ -216,14 +216,12 @@ Tensor matmul(const Tensor &A, const Tensor &B)
                 float *B_row = &B.data[k * Bstride0];
                 float *C_row = &C.data[i * Cstride0];
 
-              
                 {
                     for (int j = 0; j < N; j++)
                     {
                         C_row[j] += a_val * B_row[j]; // SIMD Fast Lane
                     }
                 }
-               
             }
         }
     }
@@ -232,30 +230,80 @@ Tensor matmul(const Tensor &A, const Tensor &B)
 
         for (int i = 0; i < M; i++)
         {
-            float* A_row = &A.data[i*Astride0 ];
+            float *A_row = &A.data[i * Astride0];
             for (int j = 0; j < N; j++)
             {
-                float sum =0.0f;
-               
-               for(int k = 0;k < K ;k++){
-               sum += A_row[k * Astride1] * B.data[k * Bstride0 + j * Bstride1];
-               }
-                C.data[i*Cstride0 +j*Cstride1]= sum;
+                float sum = 0.0f;
+
+                for (int k = 0; k < K; k++)
+                {
+                    sum += A_row[k * Astride1] * B.data[k * Bstride0 + j * Bstride1];
+                }
+                C.data[i * Cstride0 + j * Cstride1] = sum;
             }
         }
     }
     return C;
 }
 
-Tensor matmul_naive(const Tensor &A, const Tensor &B) {
+Tensor matmul_naive(const Tensor &A, const Tensor &B)
+{
     int M = A.shape[0], K = A.shape[1], N = B.shape[1];
     Tensor C({M, N});
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < N; j++) {
-            for (int k = 0; k < K; k++) {
+    for (int i = 0; i < M; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            for (int k = 0; k < K; k++)
+            {
                 // Bypass the std::vector creation overhead
-                C.data[i * C.strideVector[0] + j * C.strideVector[1]] += 
+                C.data[i * C.strideVector[0] + j * C.strideVector[1]] +=
                     A.data[i * A.strideVector[0] + k * A.strideVector[1]] * B.data[k * B.strideVector[0] + j * B.strideVector[1]];
+            }
+        }
+    }
+    return C;
+}
+Tensor matmul_tiled(const Tensor &A, const Tensor &B, int TILE)
+{
+
+    // This is not build yet to hendle Transposed
+    if (A.dim != 2 || B.dim != 2)
+        throw std::invalid_argument("Matmul requires 2D tensors.");
+    if (A.shape[1] != B.shape[0])
+        throw std::invalid_argument("Dimension mismatch.");
+
+
+    
+
+    int M = A.shape[0], K = A.shape[1], N = B.shape[1];
+    Tensor C({M, N});
+    
+    int Astride0 = A.strideVector[0], Astride1 = A.strideVector[1];
+    int Bstride0 = B.strideVector[0], Bstride1 = B.strideVector[1];
+    int Cstride0 = C.strideVector[0], Cstride1 = C.strideVector[1];
+
+    
+    for (int ii = 0; ii < M; ii += TILE)
+    {
+        for (int jj = 0; jj < N; jj += TILE)
+        {
+            for (int kk = 0; kk < K; kk += TILE)
+            {
+                 
+                for (int i = ii; i < std::min(M, ii+TILE); i ++)
+                {
+                      for (int j = jj; j < std::min(N, jj+TILE); j ++)
+                    {
+                          for (int k = kk; k < std::min(K, kk+TILE); k ++)
+                        {
+                            
+                C.data[i * C.strideVector[0] + j * C.strideVector[1]] +=
+                    A.data[i * A.strideVector[0] + k * A.strideVector[1]] * B.data[k * B.strideVector[0] + j * B.strideVector[1]];
+            
+                        }
+                    }
+                }
             }
         }
     }
