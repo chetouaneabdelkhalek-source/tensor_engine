@@ -1,2 +1,7 @@
 build/
 .vscode/
+build_bench/
+build_dbg/
+build_asan/
+build_log.txt
+valgrind_log.txt
