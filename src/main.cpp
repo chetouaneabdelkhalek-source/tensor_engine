@@ -728,7 +728,7 @@ void benchmark_matmul_only()
 }
 void benchmark_matmul_tiled_only()
 {
-    const int N =1024;
+    const int N =256;
     Tensor A({N, N}), B({N, N});
     for (int i = 0; i < N; ++i)
         for (int j = 0; j < N; ++j)
