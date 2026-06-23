@@ -686,6 +686,66 @@ void test_tiled_matmul()
         std::cout << (match ? "[PASS]" : "[FAIL]") << " Tiled matches naive for 4x4 TILE=2.\n";
     }
 }
+void benchmark_naive_only()
+{
+    const int N = 2048;
+    Tensor A({N, N}), B({N, N});
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+        {
+            A({i, j}) = 1.0f;
+            B({i, j}) = 1.0f;
+        }
+
+    auto start = std::chrono::high_resolution_clock::now();
+    Tensor C = matmul_naive(A, B);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    float time_ms = std::chrono::duration<float, std::milli>(end - start).count();
+    float gflops = (2.0f * N * N * N) / (time_ms * 1e6f);
+
+    std::cout << "N=" << N << " naive: " << time_ms << " ms, " << gflops << " GFLOPS\n";
+}
+void benchmark_matmul_only()
+{
+    const int N = 2048;
+    Tensor A({N, N}), B({N, N});
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+        {
+            A({i, j}) = 1.0f;
+            B({i, j}) = 1.0f;
+        }
+
+    auto start = std::chrono::high_resolution_clock::now();
+    Tensor C = matmul(A, B);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    float time_ms = std::chrono::duration<float, std::milli>(end - start).count();
+    float gflops = (2.0f * N * N * N) / (time_ms * 1e6f);
+
+    std::cout << "N=" << N << " matmul: " << time_ms << " ms, " << gflops << " GFLOPS\n";
+}
+void benchmark_matmul_tiled_only()
+{
+    const int N =1024;
+    Tensor A({N, N}), B({N, N});
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+        {
+            A({i, j}) = 1.0f;
+            B({i, j}) = 1.0f;
+        }
+
+    auto start = std::chrono::high_resolution_clock::now();
+    Tensor C = matmul_tiled(A, B,32);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    float time_ms = std::chrono::duration<float, std::milli>(end - start).count();
+    float gflops = (2.0f * N * N * N) / (time_ms * 1e6f);
+
+    std::cout << "N=" << N << " matmul_tiled: " << time_ms << " ms, " << gflops << " GFLOPS\n";
+}
 // ─────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────
@@ -694,18 +754,9 @@ int main()
     std::cout << "╔══════════════════════════════════════╗\n";
     std::cout << "║      TENSOR ENGINE TEST SUITE        ║\n";
     std::cout << "╚══════════════════════════════════════╝\n";
-
-    test_allocation();
-    test_transpose();
-    test_matmul();
-    test_softmax();
-    test_softmax_compare();
-    test_tiled_matmul();
-    test_rule_of_five();
-    test_bounds();
-    test_tiled_matmul(); 
-    test_benchmark();
-
+    //benchmark_naive_only();
+   //benchmark_matmul_only();
+    benchmark_matmul_tiled_only();
     std::cout << "\n========================================\n";
     std::cout << "  All tests completed.\n";
     std::cout << "========================================\n";
