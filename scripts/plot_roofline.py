@@ -122,5 +122,5 @@ plt.xlim(1, 3000)
 plt.ylim(0.1, max(PEAK_GFLOPS * 2, df['gflops'].max() * 2))
 
 plt.tight_layout()
-plt.savefig('benchmarks/roofline.png', dpi=200)
+plt.savefig(png_path, dpi=200)
 print("Successfully generated and saved 'benchmarks/roofline.png'!")
