@@ -6,3 +6,4 @@ build_asan/
 build_log.txt
 valgrind_log.txt
 .venv/
+build_log.txt
