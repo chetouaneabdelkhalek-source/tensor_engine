@@ -36,9 +36,9 @@ cmake --build build
 ### Memory Safety Check
 
 ```bash
-cmake -B build_debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build_debug
-valgrind --leak-check=full --show-leak-kinds=all ./build_debug/tensor_run
+cmake -B build_dbg -DCMAKE_BUILD_TYPE=Debug
+cmake --build build_dbg
+valgrind --leak-check=full --show-leak-kinds=all ./build_dbg/tensor_run
 ```
 
 ```bash
