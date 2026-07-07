@@ -728,35 +728,82 @@ void benchmark_matmul_only()
 }
 void benchmark_matmul_tiled_only()
 {
-    const int N =256;
+    const int N = 256;
+    const int REPS = 2000;
+    double total_ms = 0;
+
+    for (int rep = 0; rep < REPS; rep++)
+    {
+        Tensor A({N, N}), B({N, N});
+        for (int i = 0; i < N; ++i)
+            for (int j = 0; j < N; ++j) {
+                A({i,j}) = static_cast<float>(rand()) / RAND_MAX;
+                B({i,j}) = static_cast<float>(rand()) / RAND_MAX;
+            }
+
+        auto start = std::chrono::high_resolution_clock::now();
+        Tensor C = matmul_tiled(A, B, 32);
+        auto end = std::chrono::high_resolution_clock::now();
+        total_ms += std::chrono::duration<double, std::milli>(end - start).count();
+    }
+
+    double avg_ms = total_ms / REPS;
+    double gflops = (2.0 * N * N * N) / (avg_ms * 1e6);
+    std::cout << "N=" << N << " matmul_tiled: " << avg_ms << " ms, " << gflops << " GFLOPS\n";
+}
+void run_single_gemm_config(const std::string &impl, int N)
+{
     Tensor A({N, N}), B({N, N});
     for (int i = 0; i < N; ++i)
-        for (int j = 0; j < N; ++j)
-        {
-            A({i, j}) = 1.0f;
-            B({i, j}) = 1.0f;
+        for (int j = 0; j < N; ++j) {
+            A({i,j}) = static_cast<float>(rand()) / RAND_MAX;
+            B({i,j}) = static_cast<float>(rand()) / RAND_MAX;
         }
 
     auto start = std::chrono::high_resolution_clock::now();
-    Tensor C = matmul_tiled(A, B,32);
+    Tensor C = (impl == "naive") ? matmul_naive(A, B) : matmul_tiled(A, B, 32);
     auto end = std::chrono::high_resolution_clock::now();
 
-    float time_ms = std::chrono::duration<float, std::milli>(end - start).count();
-    float gflops = (2.0f * N * N * N) / (time_ms * 1e6f);
+    double ms = std::chrono::duration<double, std::milli>(end - start).count();
+    double gflops = (2.0 * N * N * N) / (ms * 1e6);
 
-    std::cout << "N=" << N << " matmul_tiled: " << time_ms << " ms, " << gflops << " GFLOPS\n";
+    // Machine-readable line, easy to grep out of perf's stderr-mixed output
+    std::cout << "RESULT," << impl << "," << N << "," << ms << "," << gflops << "\n";
 }
 // ─────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────
-int main()
+// ─────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Main
+// ─────────────────────────────────────────────
+int main(int argc, char** argv)
 {
+    if (argc == 3)
+    {
+        // ./tensor_run <impl> <N>  — used only by the perf sweep script
+        run_single_gemm_config(argv[1], std::stoi(argv[2]));
+        return 0;
+    }
+
     std::cout << "╔══════════════════════════════════════╗\n";
     std::cout << "║      TENSOR ENGINE TEST SUITE        ║\n";
     std::cout << "╚══════════════════════════════════════╝\n";
-    //benchmark_naive_only();
-   //benchmark_matmul_only();
-    benchmark_matmul_tiled_only();
+
+    // ── Correctness tests ──────────────────────────────
+    test_allocation();
+    test_transpose();
+    test_matmul();
+    test_tiled_matmul();
+    test_softmax_compare();
+
+    // ── Benchmarks (uncomment ONE at a time) ───────────
+    // benchmark_naive_only();          // N=2048, ~30-40s, used for clock measurement
+    // benchmark_matmul_only();         // N=2048, SIMD fast-path matmul
+    benchmark_matmul_tiled_only();      // N=256, looped, cache-resident
+
     std::cout << "\n========================================\n";
     std::cout << "  All tests completed.\n";
     std::cout << "========================================\n";

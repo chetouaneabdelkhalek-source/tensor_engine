@@ -14,8 +14,8 @@ png_path = os.path.join(PROJECT_ROOT, 'benchmarks', 'roofline.png')
 # =============================================================================
 # 1. HARDWARE SPECIFICATIONS (Intel Core i7-1165G7)
 # =============================================================================
-PEAK_GFLOPS = 150.4  
-BANDWIDTH = 51.2     
+PEAK_GFLOPS = 93.9  # measured: 2.934 GHz sustained x 32 FLOPs/cycle (AVX2 FMA), not turbo spec
+BANDWIDTH = 18.5    
 CACHE_LINE_BYTES = 64 
 
 # =============================================================================

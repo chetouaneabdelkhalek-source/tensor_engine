@@ -6,4 +6,6 @@ build_asan/
 build_log.txt
 valgrind_log.txt
 .venv/
-build_log.txt
+build_log.txtgemm_results.csv
+perf_output.txt
+clock_log.txt
