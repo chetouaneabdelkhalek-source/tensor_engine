@@ -9,3 +9,6 @@ valgrind_log.txt
 build_log.txtgemm_results.csv
 perf_output.txt
 clock_log.txt
+gemm_results.csv
+perf_output.txt
+clock_log.txt
