@@ -59,29 +59,28 @@ valgrind --leak-check=full --show-leak-kinds=all ./build_dbg/tensor_run
 
 Profiled with `perf stat` on an Intel Core i7-1165G7 (single-thread). Tile size = 32.
 
-| N | Implementation | Time (ms) | GFLOPS | L1 Misses | LLC Misses |
-|---|---------------|-----------|--------|-----------|------------|
-| 256 | naive | 17.24 | 1.95 | 17,320,216 | 5,406 |
-| 512 | naive | 180.37 | 1.49 | 135,612,995 | 11,311 |
-| 1024 | naive | 2370.11 | 0.91 | 1,156,057,014 | 1,884,210 |
-| 2048 | naive | 39582.3 | 0.43 | 9,440,082,246 | 3,064,563,441 |
-| 256 | tiled | 5.84 | 5.74 | 250,527 | 4,775 |
-| 512 | tiled | 51.37 | 5.23 | 15,993,300 | 8,908 |
-| 1024 | tiled | 412.83 | 5.20 | 132,443,665 | 26,622 |
-| 2048 | tiled | 3603.1 | 4.77 | 1,074,751,775 | 3,795,964 |
-
+| N | Implementation | Time (ms) | GFLOPS | LLC Misses |
+|---|---------------|-----------|--------|------------|
+| 256 | naive | 17.19 | 1.95 | 5,251 |
+| 512 | naive | 190.65 | 1.41 | 19,384 |
+| 1024 | naive | 2358.63 | 0.91 | 2,316,827 |
+| 2048 | naive | 31631.8 | 0.54 | 1,383,486,785 |
+| 256 | tiled | 6.00 | 5.59 | 4,134 |
+| 512 | tiled | 57.27 | 4.69 | 9,809 |
+| 1024 | tiled | 442.34 | 4.85 | 36,543 |
+| 2048 | tiled | 3649.98 | 4.71 | 3,175,178 |
 ### Roofline Model
 
 ![Roofline Plot](benchmarks/roofline.png)
 
-*CPU: Intel Core i7-1165G7. Single-thread peak: 150.4 GFLOPS (FP32). Memory bandwidth: 51.2 GB/s (DDR4-3200 dual channel).*
+*CPU: Intel Core i7-1165G7. Single-thread peak: 93.9 GFLOPS (measured: 2.93 GHz sustained clock under load × 32 FLOPs/cycle, AVX2 FMA). Memory bandwidth: 18.5 GB/s (measured RAM read bandwidth, not theoretical DDR4-3200 peak).*
 
 ### Methodology
 
-I profiled naive and tiled matrix multiplication at N = 256, 512, 1024, and 2048 using `perf stat` to count L1 and LLC cache misses. The naive version accesses matrix B with stride-N, jumping 4096 bytes per inner-loop iteration and loading a new cache line every time. Tiling loads a 32×32 block into cache and reuses it across multiple iterations, reducing L1 misses by 8.5× at N=512. At N=512, naive took 180.37 ms with 135,612,995 L1 misses; tiled took 51.37 ms with 15,993,300 misses. The Roofline plot shows that by the LLC-miss proxy for memory traffic, most points fall to the right of the 2.94 ridge point, placing them in the compute-bound region by operational intensity. However, both naive and tiled perform far below the 150 GFLOPS compute roof due to missing SIMD intrinsics, no register blocking, and cache associativity conflicts within the tile. Only N=2048 naive sits on the memory roof, where the working set exceeds cache capacity and causes massive LLC thrashing.
+The Roofline plot shows that by the LLC-miss proxy for memory traffic, most points fall to the right of the 5.08 ridge point, placing them in the compute-bound region by operational intensity. However, both naive and tiled perform far below the measured 93.9 GFLOPS compute roof due to missing SIMD intrinsics, no register blocking, and cache associativity conflicts within the tile. The 93.9 GFLOPS ceiling reflects sustained single-core clock speed under real load (~2.93 GHz, measured via /proc/cpuinfo sampling during a 30+ second matmul run), not the CPU's 4.7 GHz turbo spec, which the core does not sustain under continuous compute.
 ### Known Limitations
 
-The tiled kernel reaches 5 GFLOPS, which is 3.5% of the single-core peak. Further speedup would require SIMD vectorization, multithreading, and transposed B storage. Transposed inputs are not handled in the tiled kernel; the fast path assumes contiguous inner dimension.
+The tiled kernel reaches ~5 GFLOPS, which is about 5% of the measured single-core peak (93.9 GFLOPS).
 ## Implementation Notes
 
 - **Flat Data Layout:** Memory is a single 1D `float*` array, 32-byte aligned via `std::aligned_alloc` (Linux) or `_aligned_malloc` (Windows), wrapped in `std::shared_ptr<float[]>` with a custom deleter.
