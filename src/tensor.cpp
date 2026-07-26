@@ -1,4 +1,4 @@
-#include "tensor.h"
+#include "tensor.hpp"
 #include <iostream>
 #include <cmath>
 #include <memory>

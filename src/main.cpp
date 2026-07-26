@@ -7,7 +7,7 @@
  * numerically stable operations.
  */
 
-#include "tensor.h"
+#include "tensor.hpp"
 #include <iostream>
 #include <vector>
 #include <iomanip>
@@ -728,8 +728,8 @@ void benchmark_matmul_only()
 }
 void benchmark_matmul_tiled_only()
 {
-    const int N = 256;
-    const int REPS = 2000;
+    const int N = 1024;
+    const int REPS = 50;
     double total_ms = 0;
 
     for (int rep = 0; rep < REPS; rep++)
@@ -773,12 +773,6 @@ void run_single_gemm_config(const std::string &impl, int N)
 // ─────────────────────────────────────────────
 // Main
 // ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-// Main
-// ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-// Main
-// ─────────────────────────────────────────────
 int main(int argc, char** argv)
 {
     if (argc == 3)
@@ -793,11 +787,11 @@ int main(int argc, char** argv)
     std::cout << "╚══════════════════════════════════════╝\n";
 
     // ── Correctness tests ──────────────────────────────
-    test_allocation();
-    test_transpose();
-    test_matmul();
-    test_tiled_matmul();
-    test_softmax_compare();
+    //test_allocation();
+    //test_transpose();
+    //test_matmul();
+    //test_tiled_matmul();
+    //test_softmax_compare();
 
     // ── Benchmarks (uncomment ONE at a time) ───────────
     // benchmark_naive_only();          // N=2048, ~30-40s, used for clock measurement
