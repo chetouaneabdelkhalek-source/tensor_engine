@@ -729,7 +729,7 @@ void benchmark_matmul_only()
 void benchmark_matmul_tiled_only()
 {
     const int N = 1024;
-    const int REPS = 50;
+    const int REPS = 10;
     double total_ms = 0;
 
     for (int rep = 0; rep < REPS; rep++)
