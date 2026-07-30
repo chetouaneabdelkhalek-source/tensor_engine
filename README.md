@@ -1,6 +1,58 @@
 # Tensor Engine
 
-A C++ tensor library with cache-blocked GEMM, numerically stable softmax, and O(1) transpose via stride manipulation.
+A C++20 tensor library featuring cache-blocked (tiled) GEMM, an
+auto-vectorization-friendly contiguous fast path, stride-based tensor
+layout, metadata-only (zero-copy) transpose, and numerically stable
+softmax.
+
+---
+
+## Implementation Highlights
+
+- Cache-blocked (tiled) GEMM, tile size tuned to fit L1
+- Stride-aware fast path for contiguous operands (compiler
+  auto-vectorizes with AVX2 when the inner dimension is contiguous)
+- Stride-based tensor layout with metadata-only transpose (O(1), no copy)
+- Numerically stable softmax (max-subtraction before `exp`)
+- 32-byte aligned allocation via `std::shared_ptr<float[]>` with a custom
+  deleter
+- Rule of Five: deep-copy on copy, ownership transfer on move
+- Benchmark-driven: naive vs. tiled GEMM profiled with `perf stat`,
+  results plotted against a measured roofline
+
+## Example
+
+```cpp
+Tensor A({512, 512});
+Tensor B({512, 512});
+
+Tensor C = matmul(A, B);      // tiled GEMM, auto-vectorized fast path
+Tensor D = C.softmax();       // numerically stable
+Tensor E = A.transpose();     // O(1), metadata-only — shares A's buffer
+```
+
+`transpose()` never copies data — it just swaps `shape` and
+`strideVector` and shares the underlying buffer via `shared_ptr`.
+`softmax()` subtracts the row max before exponentiating, so it won't
+overflow on inputs like `[1000, 1001, 999]`. `matmul` picks a contiguous
+pointer-arithmetic fast path when both operands allow it, and falls back
+to stride-aware indexing for transposed or strided tensors.
+
+## Project Layout
+
+```
+include/
+  tensor.hpp          Tensor class declaration, public API
+src/
+  tensor.cpp           constructors, transpose, matmul/matmul_naive/matmul_tiled, softmax
+  main.cpp             test suite + benchmark harness (see Tests, below)
+benchmarks/
+  gemm_roofline.csv    raw naive-vs-tiled timing/GFLOPS/LLC-miss data
+  roofline.png          plotted roofline model
+scripts/
+  plot_roofline.py     generates roofline.png from the CSV
+run_gemm_sweep.sh       sweeps GEMM sizes and writes gemm_roofline.csv
+```
 
 ---
 
@@ -81,6 +133,20 @@ The Roofline plot shows that by the LLC-miss proxy for memory traffic, most poin
 ### Known Limitations
 
 The tiled kernel reaches ~5 GFLOPS, which is about 5% of the measured single-core peak (93.9 GFLOPS).
+
+- **`matmul` is 2D-only** — both operands must have `dim == 2`; no batched
+  or N-dimensional matmul.
+- **`softmax` is 1D-only** — throws on tensors with `dim != 1`; no
+  axis parameter yet (noted as a TODO in `tensor.cpp`).
+- **CPU-only, single-threaded, `float` only** — no GPU backend, no
+  multithreading, no double/half precision.
+- **No broadcasting** — shapes must match exactly; no implicit expansion.
+- **No autograd** — this is a forward-only tensor/GEMM library.
+- **"SIMD" here means auto-vectorization-friendly code, not hand-written
+  intrinsics** — the contiguous fast path is plain pointer arithmetic
+  that `-O3 -march=native` vectorizes with AVX2; there are no
+  `immintrin.h` intrinsics in the source.
+
 ## Implementation Notes
 
 - **Flat Data Layout:** Memory is a single 1D `float*` array, 32-byte aligned via `std::aligned_alloc` (Linux) or `_aligned_malloc` (Windows), wrapped in `std::shared_ptr<float[]>` with a custom deleter.
